@@ -957,5 +957,76 @@ function resetGame(){
   goTo('s-welcome');
 }
 </script>
+<script>
+// Step-by-step budget + education-years upgrade
+const EDU_YEARS_BY_SCHOOL={trade:1.5,cc:2,state:4,oop:4,private:4,elite:4};
+function jobPostSecondaryYears(j){
+  const d=(j.degree||'').toLowerCase();
+  if(d.includes('medical')||d.includes('doctorate')||d.includes('md')||d.includes('vet')) return 8;
+  if(d.includes('juris')) return 7;
+  if(d.includes('master')) return 6;
+  if(d.includes('bachelor')) return 4;
+  if(d.includes('associate')) return 2;
+  if(d.includes('certificate')||d.includes('diploma')||d.includes('apprenticeship')||d.includes('faa')) return 1.5;
+  return 4;
+}
+function requiredEducationNote(j,c){
+  const need=jobPostSecondaryYears(j), school=EDU_YEARS_BY_SCHOOL[c.id]||c.years||4;
+  const extra=Math.max(0,need-school);
+  return {need,school,extra};
+}
+let budgetStep=0;
+const oldGoTo=goTo;
+goTo=function(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const target=document.getElementById(id); if(target) target.classList.add('active');
+  if(id==='s-job')renderJobs();
+  if(id==='s-job-info')renderJobInfo();
+  if(id==='s-college')renderColleges();
+  if(id==='s-budget'){budgetStep=0;renderBudgetStep();}
+};
+renderJobInfo=function(){
+  const j=state.job;if(!j)return; const take=Math.round(j.entry/12*0.73), years=jobPostSecondaryYears(j);
+  document.getElementById('ji-title').textContent=j.icon+' Career Analysis: '+j.title;
+  document.getElementById('ji-stats').innerHTML=`<div class="stat-card"><div class="stat-label">Median Salary</div><div class="stat-value" style="color:#2563eb">${fmt(j.salary)}</div></div><div class="stat-card"><div class="stat-label">Entry Pay</div><div class="stat-value">${fmt(j.entry)}</div></div><div class="stat-card"><div class="stat-label">Post-Secondary School</div><div class="stat-value" style="color:#7c3aed">${years} yrs</div></div><div class="stat-card"><div class="stat-label">Est. Monthly Take-Home</div><div class="stat-value" style="color:#16a34a">${fmt(take)}</div></div>`;
+  document.getElementById('ji-desc').innerHTML=`${j.desc}<br><br><strong>Middle-school connection:</strong> this career usually needs about <strong>${years} years after high school</strong>. More years can mean more loan cost before you earn full-time money, so grades and study habits matter now.`;
+  document.getElementById('ji-proscons').innerHTML=`<div style="display:flex;flex-direction:column;gap:6px"><div style="font-weight:700;color:#16a34a">Pros</div>${j.pros.map(p=>`<div class="pro-item">✅ ${p}</div>`).join('')}<div class="pro-item">✅ Skills learned now can turn into scholarships and better choices later.</div></div><div style="display:flex;flex-direction:column;gap:6px"><div style="font-weight:700;color:#dc2626">Cons</div>${j.cons.map(c=>`<div class="con-item">❌ ${c}</div>`).join('')}<div class="con-item">❌ More education years can increase student debt if you borrow for school.</div></div>`;
+  const s=document.getElementById('ji-success-box'); s.className=(state.grade==='A'||state.grade==='B')?'success-alert-box':'danger-alert-box'; s.innerHTML=`<h3>Grade Impact</h3><p style="margin-bottom:0;color:inherit;font-size:13.5px">${CAREER_SUCCESS_ODDS[state.grade||'B']}</p>`;
+};
+const oldConfirmCollege=confirmCollege;
+confirmCollege=function(){
+  if(!state.college||!state.job)return; const c=state.college,j=state.job, edu=requiredEducationNote(j,c);
+  const baseDebt=state.livingAtHome?c.tuitionDebt:c.tuitionDebt+c.roomDebt;
+  const annualSchoolCost=(c.tuitionDebt+c.roomDebt)/Math.max(1,c.years||4);
+  const extraDebt=Math.round(edu.extra*annualSchoolCost*0.75);
+  state.totalDebt=baseDebt+extraDebt; state.loanMonthly=Math.round(calcLoan(state.totalDebt,0.065,10));
+  const interest=state.loanMonthly*120-state.totalDebt;
+  document.getElementById('loan-details').innerHTML=`<div class="card"><h3>🎓 Education Years + Loan Impact</h3><p>Your selected career usually needs <strong>${edu.need} years</strong> of post-secondary education. This school covers about <strong>${edu.school} years</strong>. Extra required training estimate: <strong>${edu.extra} years</strong>.</p><div class="grid-2"><div class="stat-card"><div class="stat-label">Base School Debt</div><div class="stat-value">${fmt(baseDebt)}</div></div><div class="stat-card"><div class="stat-label">Extra Training Debt</div><div class="stat-value" style="color:#b91c1c">${fmt(extraDebt)}</div></div><div class="stat-card"><div class="stat-label">Total Education Debt</div><div class="stat-value" style="color:#b91c1c">${fmt(state.totalDebt)}</div></div><div class="stat-card"><div class="stat-label">Monthly Loan Payment</div><div class="stat-value" style="color:#b91c1c">${fmt(state.loanMonthly)}</div></div></div></div><div class="info-box">This is a simplified classroom estimate. It shows the main lesson: longer training can raise debt unless scholarships, family help, working during school, or lower-cost programs reduce borrowing. Estimated total interest over 10 years: <strong>${fmt(Math.max(0,interest))}</strong>.</div>`;
+  oldGoTo('s-loans');
+};
+function renderBudgetStep(){
+  const j=state.job;if(!j)return; state.takeHome=Math.round(j.entry/12*0.73);
+  const cat=EXPENSE_CATEGORIES[budgetStep];
+  document.querySelector('#s-budget h2').textContent=`${cat.icon} Budget Choice ${budgetStep+1} of ${EXPENSE_CATEGORIES.length}: ${cat.label}`;
+  document.querySelector('#s-budget p').innerHTML=`Choose one option. Use the back button to edit earlier choices. <strong>Monthly take-home:</strong> ${fmt(state.takeHome)}. <strong>Student loan:</strong> ${fmt(state.loanMonthly)}/mo.`;
+  document.getElementById('budget-income-card').innerHTML=`<h3>How this choice affects life</h3><p>${cat.desc}</p><div class="info-box">Small monthly choices become yearly habits. A ${fmt(100)}/month habit costs ${fmt(1200)} each year.</div>`;
+  document.getElementById('expense-sections').innerHTML=cat.options.map(o=>{let price=o.price===-1?Math.round(state.takeHome*.1):o.price;let annual=price*12;return `<button class="opt-btn ${state.picks[cat.id]?.optId===o.id?'selected':''}" data-cat="${cat.id}" onclick="pickStepOption('${cat.id}','${o.id}',${price})"><div style="display:flex;justify-content:space-between;gap:10px"><span class="opt-name">${o.label}</span><span class="opt-price">${price===0?'Free':fmt(price)+'/mo'}</span></div><div class="opt-note">${o.note}</div><div class="pros-cons"><div class="pro-item">✅ Yearly impact: ${fmt(annual)}. Choosing a lower-cost option leaves more room for emergencies, goals, and fun later.</div><div class="con-item">❌ Tradeoff: every dollar here cannot also pay loans, savings, car repairs, trips, or future needs.</div></div></button>`}).join('');
+  document.getElementById('btn-results').style.display='none';
+  updateRemaining();
+  const nav=document.createElement('div'); nav.className='grid-2'; nav.innerHTML=`<button class="btn-secondary" style="width:100%;margin-top:1rem" onclick="budgetBack()">← Back / Edit Previous</button><button class="btn-primary" id="budget-next-step" ${state.picks[cat.id]?'':'disabled'} onclick="budgetNext()">${budgetStep===EXPENSE_CATEGORIES.length-1?'Review Budget Score ↗':'Next Budget Choice ↗'}</button>`;
+  document.getElementById('expense-sections').appendChild(nav);
+}
+function pickStepOption(catId,optId,price){state.picks[catId]={optId,price};renderBudgetStep();}
+function budgetBack(){ if(budgetStep>0){budgetStep--;renderBudgetStep();} else oldGoTo('s-loans'); }
+function budgetNext(){ if(!state.picks[EXPENSE_CATEGORIES[budgetStep].id])return; if(budgetStep<EXPENSE_CATEGORIES.length-1){budgetStep++;renderBudgetStep();} else showBudgetCheckpoint(); }
+const oldCheckBudget=checkBudget;
+checkBudget=function(fromMonthGame){ oldCheckBudget(fromMonthGame); addLifeRecap(); };
+function addLifeRecap(){
+  const rb=document.getElementById('result-body'); if(!rb)return;
+  const lines=EXPENSE_CATEGORIES.map(cat=>{const p=state.picks[cat.id]; if(!p)return ''; const opt=cat.options.find(o=>o.id===p.optId); return `<p style="font-size:13px"><strong>${cat.icon} ${cat.label}:</strong> ${opt.label} costs <strong>${fmt(p.price)}/mo</strong>. In real life, this means: ${opt.note}</p>`;}).join('');
+  rb.innerHTML += `<div class="card"><h3>Detailed Life Recap From Your Choices</h3><p>This is what your month probably feels like based on your decisions, not just the math.</p>${lines}<div class="success-alert-box"><strong>Big lesson:</strong> adult freedom is real, but every choice has a monthly cost, a time cost, and a stress cost. The strongest budget is usually not the cheapest one; it is the one that survives normal life.</div></div>`;
+}
+</script>
+
 </body>
 </html>
