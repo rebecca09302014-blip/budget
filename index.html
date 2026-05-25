@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Life and Budget Simulator</title>
+<style>
+:root {
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f8fafc;
+  --color-background-info: #f0f7ff;
+  --color-background-danger: #fff5f5;
+  --color-background-success: #f4fbf0;
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-tertiary: #94a3b8;
+  --color-border-secondary: #cbd5e1;
+  --color-border-tertiary: #e2e8f0;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #e2e8f0;
+  color: var(--color-text-primary);
+  padding: 1.5rem 1rem;
+}
+.game-wrapper {
+  max-width: 650px;
+  margin: 0 auto;
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+.screen{display:none;padding:2rem 1.5rem}
+.screen.active{display:block}
+h2{font-size:22px;font-weight:700;color:var(--color-text-primary);margin-bottom:.75rem}
+h3{font-size:16px;font-weight:600;color:var(--color-text-primary);margin-bottom:.5rem}
+p{font-size:14.5px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:1rem}
+.card{background:var(--color-background-primary);border:1px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1.25rem;margin-bottom:1rem;box-shadow:0 2px 4px rgba(0,0,0,0.01)}
+.grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:1rem}
+.job-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:1rem}
+
+.job-btn{background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:1rem;cursor:pointer;text-align:left;width:100%;transition:all .2s}
+.job-btn:hover{background:var(--color-background-secondary);transform:translateY(-2px)}
+.job-btn.selected{border:2.5px solid #2563eb;background:var(--color-background-info);box-shadow:0 4px 12px rgba(37,99,235,0.15)}
+
+.choice-btn{background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:1.25rem;cursor:pointer;text-align:left;width:100%;display:block;margin-bottom:12px;transition:all .2s}
+.choice-btn:hover{background:var(--color-background-secondary)}
+.choice-btn.selected{border:2.5px solid #2563eb;background:var(--color-background-info);box-shadow:0 4px 12px rgba(37,99,235,0.15)}
+
+.locked-school{background:var(--color-background-secondary);border:1px dashed var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:1.25rem;margin-bottom:12px;opacity:.65}
+.btn-primary{background:#2563eb;color:#fff;border:none;border-radius:var(--border-radius-md);padding:.75rem 1.5rem;font-size:15px;font-weight:600;cursor:pointer;margin-top:1rem;display:inline-block;width:100%;text-align:center;box-shadow:0 4px 6px rgba(37,99,235,0.2)}
+.btn-primary:disabled{opacity:.3;cursor:not-allowed;box-shadow:none}
+.btn-secondary{background:var(--color-background-secondary);color:var(--color-text-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:.75rem 1.5rem;font-size:15px;font-weight:500;cursor:pointer;margin-top:1rem;margin-right:.5rem}
+
+.stat-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:1rem;text-align:center;border:1px solid var(--color-border-tertiary)}
+.stat-label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-secondary);margin-bottom:4px}
+.stat-value{font-size:20px;font-weight:700;color:var(--color-text-primary)}
+
+.progress-bar-wrap{background:var(--color-border-tertiary);border-radius:6px;height:10px;margin-bottom:1.5rem;overflow:hidden}
+.progress-bar{height:10px;border-radius:6px;background:#2563eb;transition:width .4s}
+.step-indicator{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--color-text-tertiary);margin-bottom:.5rem}
+
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase}
+.tag-info{background:#dbeafe;color:#1e40af}
+.tag-warn{background:#fef3c7;color:#92400e}
+.tag-good{background:#dcfce7;color:#166534}
+.tag-bad{background:#fee2e2;color:#991b1b}
+
+.info-box{background:var(--color-background-secondary);border-left:4px solid #2563eb;border-radius:0 var(--border-radius-md) var(--border-radius-md) 0;padding:1rem;margin-bottom:1rem;font-size:14px;color:var(--color-text-secondary);line-height:1.6}
+.danger-alert-box {background:var(--color-background-danger);border:1.5px solid #f87171;border-left:5px solid #dc2626;border-radius:var(--border-radius-md);padding:1rem;margin-bottom:1rem;font-size:13.5px;color:#991b1b;line-height:1.6}
+.success-alert-box {background:var(--color-background-success);border:1.5px solid #86efac;border-left:5px solid #16a34a;border-radius:var(--border-radius-md);padding:1rem;margin-bottom:1rem;font-size:13.5px;color:#166534;line-height:1.6}
+
+.pros-cons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:8px;font-size:12px}
+.pro-item{color:#15803d;background:#f0fdf4;padding:6px;border-radius:4px;border-left:3px solid #16a34a}
+.con-item{color:#b91c1c;background:#fef2f2;padding:6px;border-radius:4px;border-left:3px solid #dc2626}
+
+.opt-grid{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px}
+.opt-btn{background:var(--color-background-primary);border:1.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:1rem;cursor:pointer;text-align:left;width:100%;transition:all .15s;display:flex;flex-direction:column;gap:4px}
+.opt-btn:hover{background:var(--color-background-secondary)}
+.opt-btn.selected{border:2.5px solid #2563eb;background:var(--color-background-info);box-shadow:0 2px 8px rgba(37,99,235,0.1)}
+.opt-name{font-size:14px;font-weight:700;color:var(--color-text-primary)}
+.opt-price{font-size:14px;font-weight:700;color:#2563eb}
+.opt-note{font-size:12px;color:var(--color-text-secondary);line-height:1.4}
+
+.grade-selector{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:1.5rem 0}
+.grade-btn{background:#fff;border:1.5px solid var(--color-border-secondary);padding:1.25rem .5rem;font-size:22px;font-weight:800;border-radius:10px;cursor:pointer;text-align:center;transition:all .2s;box-shadow:0 2px 4px rgba(0,0,0,0.02)}
+.grade-btn:hover{background:var(--color-background-secondary);transform:translateY(-1px)}
+.grade-btn.selected{border:2.5px solid #2563eb;background:var(--color-background-info);box-shadow:0 4px 12px rgba(37,99,235,0.15)}
+
+.hero-badge{display:inline-block;background:linear-gradient(135deg,#dbeafe,#f5d0fe);color:#1e3a8a;border:1px solid #bfdbfe;border-radius:999px;padding:8px 14px;font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-bottom:12px}
+.life-impact{margin-top:8px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px;font-size:12px;line-height:1.45;color:#334155}
+.mini-list{margin-top:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mini-good,.mini-bad{font-size:11.5px;border-radius:8px;padding:7px;line-height:1.35}.mini-good{background:#ecfdf5;color:#065f46;border-left:4px solid #10b981}.mini-bad{background:#fff1f2;color:#9f1239;border-left:4px solid #f43f5e}
+body{background:linear-gradient(135deg,#dbeafe 0%,#f8fafc 42%,#fce7f3 100%)}
+.game-wrapper{border:1px solid rgba(148,163,184,.35);box-shadow:0 24px 70px rgba(15,23,42,.15)}
+.screen{background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%)}
+.card,.choice-btn,.job-btn,.opt-btn{box-shadow:0 8px 18px rgba(15,23,42,.045)}
+.job-btn{min-height:185px;position:relative;overflow:hidden}.job-btn:before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(37,99,235,.07),transparent 45%);pointer-events:none}
+
+</style>
+</head>
+<body>
+
+<div class="game-wrapper">
+  <h2 style="display:none;">Life and Budget Simulator — educational game about careers, college, and budgeting</h2>
+
+  <div id="s-welcome" class="screen active">
+    <div style="text-align:center;padding:3rem 1rem">
+      <span style="font-size:64px;display:block;margin-bottom:1rem">📊</span>
+      <h2 style="font-size:26px;margin-bottom:1rem">Life & Budget Simulator</h2>
+      <p style="max-width:420px;margin:0 auto 2rem;font-size:16px">A middle-school friendly game about real-life money choices. Pick a career, see how school habits open doors, build a monthly budget, then survive realistic weekly surprises.</p>
+      <button class="btn-primary" style="max-width:300px" onclick="goTo('s-grades')">Launch Simulator ↗</button>
+    </div>
+  </div>
+
+  <div id="s-grades" class="screen">
+    <div class="step-indicator">Setup — Academic Profile</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width:10%"></div></div>
+    <h2>What do your grades usually look like right now?</h2>
+    <p>Be honest. This is not about judging you. It shows how homework habits, studying, attendance, and asking for help can make future choices easier or harder.</p>
+    
+    <div class="grade-selector">
+      <button class="grade-btn" id="g-A" onclick="selectGrade('A')">A <span style="font-size:11px;display:block;font-weight:normal;color:var(--color-text-secondary);margin-top:4px">Excellent</span></button>
+      <button class="grade-btn" id="g-B" onclick="selectGrade('B')">B <span style="font-size:11px;display:block;font-weight:normal;color:var(--color-text-secondary);margin-top:4px">Good</span></button>
+      <button class="grade-btn" id="g-C" onclick="selectGrade('C')">C <span style="font-size:11px;display:block;font-weight:normal;color:var(--color-text-secondary);margin-top:4px">Passing</span></button>
+      <button class="grade-btn" id="g-D" onclick="selectGrade('D')">D/F <span style="font-size:11px;display:block;font-weight:normal;color:var(--color-text-secondary);margin-top:4px">Struggling</span></button>
+    </div>
+    <button class="btn-primary" id="btn-grades" disabled onclick="goTo('s-job')">Lock in Grades & Continue ↗</button>
+  </div>
+
+  <div id="s-job" class="screen">
+    <div class="step-indicator">Step 1 of 4 — Career Selection</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width:25%"></div></div>
+    <h2>Choose a possible future job</h2>
+    <p>Try a job that sounds interesting. Each card shows the school path, starting pay, lifestyle, stress points, and daily-life tradeoffs in student-friendly language.</p>
+    <div class="job-grid" id="job-grid"></div>
+    <button class="btn-primary" id="btn-job" disabled onclick="goTo('s-job-info')">Analyze Chosen Career ↗</button>
+  </div>
+
+  <div id="s-job-info" class="screen">
+    <div class="step-indicator">Step 1 of 4 — Deep Dive Career Analytics</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width:25%"></div></div>
+    <h2 id="ji-title"></h2>
+    
+    <div class="grid-2" id="ji-stats"></div>
+    
+    <div class="card" style="background:var(--color-background-secondary)">
+      <h3 style="display:flex;align-items:center;gap:6px">📋 Career Blueprint & Realities</h3>
+      <p id="ji-desc" style="margin-bottom:0;margin-top:8px"></p>
+    </div>
+
+    <div class="card">
+      <h3>🎭 Pros vs. Cons Balance Sheet</h3>
+      <div class="pros-cons" id="ji-proscons"></div>
+    </div>
+    
+    <div id="ji-success-box"></div>
+    
+    <div style="display:flex;gap:10px">
+      <button class="btn-secondary" style="flex:1" onclick="goTo('s-job')">← Change Career</button>
+      <button class="btn-primary" style="flex:2;margin-top:1rem" onclick="goTo('s-college')">Proceed to College Fair ↗</button>
+    </div>
+  </div>
+
+  <div id="s-college" class="screen">
+    <div class="step-indicator">Step 2 of 4 — Higher Education Admissions</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width:50%"></div></div>
+    <h2>Select Your Target School</h2>
+    <p>Your current academic profile changes your <strong>Admission Acceptance Odds</strong>. Watch out for tuition rates: excessive debt creates heavy financial penalties on your final adult budget!</p>
+    <div id="college-list"></div>
+    <button class="btn-primary" id="btn-college" disabled onclick="confirmCollege()">Finalize College Choice ↗</button>
+  </div>
+
+  <div id="s-loans" class="screen">
+    <div class="step-indicator">Step 2 of 4 — Financial Aid Reality Check</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width:50%"></div></div>
+    <h2>💸 Student Debt Amortization Sheet</h2>
+    <div id="loan-details"></div>
+    <div class="info-box">All student loans utilize a <strong>6.5% interest rate</strong> baseline modeled across the standard 10-year (120-month) federal repayment schedule.</div>
+    <div style="display:flex;gap:10px">
+      <button class="btn-secondary" style="flex:1" onclick="goTo('s-college')">← Change School</button>
+      <button class="btn-primary" style="flex:2;margin-top:1rem" onclick="goTo('s-budget')">Build Adult Budget ↗</button>
+    </div>
+  </div>
+
+  <div id="s-budget" class="screen">
+    <div class="step-indicator">Step 3 of 4 — Monthly Cash Flow Planner</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width:75%"></div></div>
+    <h2>🏠 Construct Your Monthly Budget</h2>
+    <p>Welcome to the real world. You graduated and got your entry job. Now allocation decisions begin. Pick <strong>exactly one</strong> option inside each active cost category below.</p>
+    
+    <div class="card" id="budget-income-card"></div>
+    <div id="expense-sections"></div>
+    
+    <div class="card" style="position: sticky; bottom: 10px; z-index: 100; border: 2px solid var(--color-border-secondary); background: #fff; box-shadow: 0 -4px 15px rgba(0,0,0,0.05)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <span style="font-size:14px;font-weight:700">Net Cash Flow Balance:</span>
+        <span id="budget-remaining" style="font-size:22px;font-weight:800">—</span>
+      </div>
+      <div style="background:var(--color-border-tertiary);border-radius:6px;height:14px;overflow:hidden;border: 1px solid var(--color-border-secondary)">
+        <div id="budget-meter" style="height:14px;border-radius:6px;width:0%;background:#16a34a;transition:width .3s"></div>
+      </div>
+      <div id="budget-tally" style="font-size:12px;font-weight:600;color:var(--color-text-secondary);margin-top:6px"></div>
+    </div>
+    <button class="btn-primary" id="btn-results" disabled onclick="showBudgetCheckpoint()">Lock Budget & Review Budget Score ↗</button>
+  </div>
+
+  <div id="s-budget-check" class="screen">
+    <div class="step-indicator">Step 4 of 6 — Budget Performance Checkpoint</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width:82%"></div></div>
+    <h2>Budget Locked: Before Life Happens</h2>
+    <div id="budget-check-body"></div>
+    <button class="btn-primary" onclick="startMonthGame()">Start the 4-Week Real-Life Challenge ↗</button>
+  </div>
+
+  <div id="s-weekly" class="screen">
+    <div class="step-indicator">Step 5 of 6 — Realistic Month Challenge</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width:90%"></div></div>
+    <h2 id="week-title">Week 1</h2>
+    <div id="week-body"></div>
+    <button class="btn-primary" id="btn-week-next" onclick="nextWeek()">Continue ↗</button>
+  </div>
+
+  <div id="s-results" class="screen">
+    <div class="step-indicator">Step 6 of 6 — End-of-Month Scorecard</div>
+    <div class="progress-bar-wrap"><div class="progress-bar" style="width:100%"></div></div>
+    <h2 id="result-title" style="font-size:26px;text-align:center;margin-bottom:1rem"></h2>
+    <div id="result-body"></div>
+    <div class="grid-2" style="margin-top:1rem"><button class="btn-primary" onclick="continueAnotherMonth()">Keep Going: Play Another Month ↗</button><button class="btn-secondary" style="width:100%;margin-top:1rem" onclick="resetGame()">Recap, End, and Start Over 🔄</button></div>
+  </div>
+</div>
+
+<script>
+const JOBS=[
+  {id:'doctor',title:'Medical Doctor',icon:'🩺',salary:220000,entry:160000,degree:'Medical Doctorate (MD)',minSchool:'state',
+   desc:'Physicians examine, diagnose, and treat critically ill medical patients. The track demands an extensive 4-year undergraduate run, 4 years of ultra-competitive medical school, plus 3 to 7 years in a low-paying residency training program.',
+   pros:['Top tier income potential','High social prestige','Strong long-term job security'],
+   cons:['Minimum 11+ years training','Extreme working hours','Enormous stress levels']
+  },
+  {id:'nurse',title:'Registered Nurse',icon:'💉',salary:81000,entry:60000,degree:"Bachelor's in Nursing (BSN)",minSchool:'cc',
+   desc:'Nurses act as frontline patient care managers across high-stress hospital wards. They monitor vitals, administer prescriptions, and coordinate alongside doctors. Highly stable path with excellent shift flexibility.',
+   pros:['Massive national job demand','Flexible 3-day workweeks','Can enter workforce early'],
+   cons:['Physically demanding shifts','Deals with body fluids','Frequent holiday/night work']
+  },
+  {id:'teacher',title:'K-12 School Teacher',icon:'📚',salary:62000,entry:42000,degree:"Bachelor's in Education",minSchool:'cc',
+   desc:'Educators manage classroom behaviors, construct academic lesson plans, and support student skill development. Compensation profiles depend strictly on regional school district funding boards.',
+   pros:['Summers and school holidays off','Highly rewarding service work','Predictable weekday hours'],
+   cons:['Lower starting income caps','High levels of student burnout','Spends personal cash on supplies']
+  },
+  {id:'engineer',title:'Software Engineer',icon:'💻',salary:130000,entry:90000,degree:"Bachelor's in Computer Science",minSchool:'cc',
+   desc:'Programmers write script architectures to deploy tech websites, databases, and structural operating engines. Rewards methodical problem solvers skilled at tracking code bugs.',
+   pros:['Strong starting salary ranges','Abundant work-from-home options','High creative creation freedom'],
+   cons:['Staring at screens for 9+ hours','Constantly learning shifting tools','Tight tech product launch deadlines']
+  },
+  {id:'firefighter',title:'Firefighter / EMT',icon:'🚒',salary:54000,entry:38000,degree:'Academy Certificate',minSchool:'cc',
+   desc:'Emergency responders handle active fires and hazardous rescue situations while providing urgent medical support. Requires passing rigorous physical fitness tests and background sweeps.',
+   pros:['Excellent pension/retirement benefits','Deep team brotherhood bonds','Unique schedules (e.g. 48-off)'],
+   cons:['Direct life-threatening workplace dangers','Highly disrupted sleep routines','Exposure to traumatic emergencies']
+  },
+  {id:'chef',title:'Head Culinary Chef',icon:'👨‍🍳',salary:58000,entry:32000,degree:'Culinary Arts Diploma',minSchool:'trade',
+   desc:'Kitchen commanders manage recipe designs, trace raw food costs, and run lightning-fast assembly lines inside upscale restaurant kitchens. Very high physical stamina required.',
+   pros:['Expressive artistic food creation','Fast technical trade training','Fun, high-energy environment'],
+   cons:['Extreme heat and sharp work tools','Work every weekend/holiday night','Very high starting failure rates']
+  },
+  {id:'lawyer',title:'Corporate Attorney',icon:'⚖️',salary:145000,entry:80000,degree:'Juris Doctor (JD)',minSchool:'state',
+   desc:'Legal specialists analyze regulatory frameworks, execute complex corporate mergers, and argue client briefs in civil courts. Requires passing the competitive bar examination.',
+   pros:['Strong corporate earning scales','Develops elite analytical speaking','Influential professional power'],
+   cons:['Requires reading 100s of contract pages','Billable hour tracking stress','High corporate competitive pressure']
+  },
+  {id:'designer',title:'UX / Graphic Designer',icon:'🎨',salary:53000,entry:38000,degree:"Bachelor's in Fine Arts",minSchool:'cc',
+   desc:'Visual architects translate complex digital features into clean branding layouts, icons, and interactive software interfaces for major consumer electronics brands.',
+   pros:['Excellent creative output outlets','Plentiful freelance business setups','Visual project work portfolio focus'],
+   cons:['Subject to harsh client critiques','Tech sector layoffs risk','Vigorous market layout battles']
+  },
+  {id:'plumber',title:'Licensed Master Plumber',icon:'🔧',salary:61000,entry:45000,degree:'Paid Apprenticeship Track',minSchool:'trade',
+   desc:'Infrastructure mechanics deploy and fix complex commercial gas lines, structural drains, and residential clean water pipelines. Excellent technical career path.',
+   pros:['Earn while you learn (Zero debt!)','Immense national worker shortages','Insulated from AI displacement'],
+   cons:['Deals directly with raw waste matter','Physically taxing cramped spaces','On-call middle-of-night emergencies']
+  },
+  {id:'gamedeveloper',title:'Video Game Developer',icon:'🎮',salary:95000,entry:62000,degree:"Bachelor's in Game Engineering",minSchool:'cc',
+   desc:'Engine programmers draft game-loop systems, physics vectors, and level mechanics to power modern titles across interactive computing consoles.',
+   pros:['Work directly in entertainment arts','Collaborative tech environments','Highly satisfying creation milestones'],
+   cons:['Subject to severe unpaid crunch seasons','Volatile studio business shutdowns','High competition for job slots']
+  },
+  {id:'veterinarian',title:'Veterinary Physician',icon:'🐱',salary:110000,entry:78000,degree:'Doctor of Vet Med (DVM)',minSchool:'state',
+   desc:'Animal doctors perform surgical restorations and administer healthcare routines across broad wildlife, agricultural, and domestic pet sectors.',
+   pros:['Work every day supporting animals','Strong medical diagnostic prestige','Varied medical procedural tasks'],
+   cons:['Highly selective 4-year Vet School admissions','High bite/scratch physical injury risks','Deals with emotional euthanasia cases']
+  },
+  {id:'contentcreator',title:'Digital Content Creator',icon:'🤳',salary:55000,entry:22000,degree:'Self-Taught Portfolio',minSchool:'trade',
+   desc:'Independent brand operators film, edit, and stream informational media assets distributed through consumer social channels. Relies completely on advertisement engagement profiles.',
+   pros:['Absolute career authority and freedom','Turn personal hobbies into revenue','Direct fan-base connectivity'],
+   cons:['Extremely volatile revenue tracks','No default medical insurance benefits','Unending hours matching video trends']
+  },
+  {id:'aerospace',title:'Aerospace Engineer',icon:'🚀',salary:122000,entry:82000,degree:"Bachelor's in Aerospace Sci",minSchool:'state',
+   desc:'Defense and space engineering specialists compute trajectory algorithms and structural tolerances to design spacecraft, satellites, and long-range commercial avionics.',
+   pros:['Build cutting edge aerospace tech','Excellent pay scales from day one','Fascinating advanced physics labs'],
+   cons:['Requires extreme math/physics precision','Heavy government defense clearances','Extensive technical regulatory overhead']
+  },
+  {id:'fbiagent',title:'FBI Special Agent',icon:'🕵️‍♂️',salary:92000,entry:64000,degree:"Bachelor's + Field Experience",minSchool:'state',
+   desc:'Federal law enforcement investigators audit international financial frauds, counter espionage networks, and execute high-stakes tactical warrants.',
+   pros:['Elite federal law enforcement prestige','Exciting, unpredictable task days','Strong federal health insurance/pension'],
+   cons:['Mandatory nation-wide relocations','Dangerous combat exposure tracks','Exhaustive personal lifestyle surveillance']
+  },
+  {id:'architect',title:'Licensed Architect',icon:'📐',salary:84000,entry:55000,degree:"Master of Architecture",minSchool:'state',
+   desc:'Structural layout artists blueprint safety margins, environmental parameters, and visual styles to craft modern municipal offices and residential developments.',
+   pros:['Leave permanent physical landmarks','Fuses hard math with beautiful art','Prestigious professional label'],
+   cons:['Demands intensive 5-year college tracks','Tedious municipal zoning review delays','Highly vulnerable to real estate recessions']
+  },
+  {id:'marinebiologist',title:'Marine Research Biologist',icon:'🐬',salary:65000,entry:44000,degree:"Bachelor's in Marine Biology",minSchool:'state',
+   desc:'Oceanic scientists run environmental sample tests, chart deep reef populations, and execute environmental recovery efforts alongside government maritime boards.',
+   pros:['Amazing open-water lab operations','Travel to global shoreline zones','Direct active conservation impacts'],
+   cons:['Requires hyper-cramped boat field labs','Heavy competition for scarce grant money','Most high pay jobs demand a Ph.D. degree']
+  },
+  {id:'cybersecurity',title:'Cybersecurity Analyst',icon:'🛡️',salary:112000,entry:75000,degree:"CompSci Degree or Certs",minSchool:'cc',
+   desc:'Data armor tech teams run live penetration tests, verify network authorization keys, and block hostile hacker intrusions targeting corporate digital centers.',
+   pros:['Explosive global industry demand','Highly technical puzzle solving tasks','Excellent protective tech status'],
+   cons:['High system crisis alert stress','Irregular night emergency server shifts','Liable for catastrophic data leaks']
+  },
+  {id:'sportsmedic',title:'Sports Athletic Trainer',icon:'👟',salary:54000,entry:38000,degree:"Master's in Athletic Training",minSchool:'state',
+   desc:'Therapy mechanics deploy biomechanical conditioning programs, track field concussion margins, and execute medical rehabilitation for physical sports injuries.',
+   pros:['Work directly inside sports culture','Active lifestyle away from office desks','Rewarding physical recovery turnarounds'],
+   cons:['Constant weekend travel demands','Frequent high-stress player pressure','Requires a Master\'s degree for low baseline pay']
+  },
+  {id:'pilot',title:'Commercial Airline Pilot',icon:'✈️',salary:148000,entry:65000,degree:'FAA Commercial License',minSchool:'trade',
+   desc:'Avionic captains navigate massive heavy transport jetliners across global transit patterns while managing precise instrument protocols and complex weather risks.',
+   pros:['High premium compensation tracks','Free worldwide travel opportunities','Zero homework once shifts conclude'],
+   cons:['Highly expensive initial flight school','Severe timezone jetlag fatigue blocks','Strict bi-annual medical safety check threats']
+  }
+  ,{id:'electrician',title:'Licensed Electrician',icon:'💡',salary:67000,entry:46000,degree:'Paid Apprenticeship + License',minSchool:'trade',
+   desc:'Electricians install and repair wiring, outlets, panels, lighting, and building power systems. Daily life is hands-on: ladders, tools, problem solving, and job sites instead of sitting at a desk all day.',
+   pros:['Earn money while training','Useful skill almost everywhere','Can start your own business later','Hard for robots to replace'],
+   cons:['Physical work can be tiring','Safety rules matter every minute','Some crawlspaces/attics are uncomfortable','Early mornings are common']
+  },
+  {id:'dentalhygienist',title:'Dental Hygienist',icon:'🦷',salary:87000,entry:62000,degree:'Associate Degree + License',minSchool:'cc',
+   desc:'Dental hygienists clean teeth, take X-rays, teach patients how to prevent cavities, and work closely with dentists. The work is steady, detail-oriented, and often has predictable daytime hours.',
+   pros:['Strong pay for a shorter degree','Clean indoor workplace','Helps people stay healthy','Often has regular weekday hours'],
+   cons:['Repetitive hand/neck posture','Must be comfortable near mouths','Licensing exam required','Appointments can feel rushed']
+  },
+  {id:'accountant',title:'Accountant',icon:'🧮',salary:79000,entry:55000,degree:"Bachelor's in Accounting",minSchool:'cc',
+   desc:'Accountants track money for people, businesses, schools, and hospitals. They check budgets, taxes, payroll, and reports. Daily life involves spreadsheets, deadlines, accuracy, and explaining money clearly.',
+   pros:['Stable job in many industries','Good for organized students','Can work for companies or yourself','Clear promotion ladder'],
+   cons:['Busy tax/deadline seasons','Lots of screen time','Small mistakes matter','Can feel repetitive']
+  },
+  {id:'police',title:'Police Officer',icon:'👮',salary:72000,entry:52000,degree:'Academy Training',minSchool:'cc',
+   desc:'Police officers respond to calls, write reports, help during emergencies, and enforce laws. The job can be active and meaningful, but it also includes stress, conflict, and public responsibility.',
+   pros:['Serves the community','Active workdays','Benefits and pension possible','Team-based environment'],
+   cons:['Can be dangerous','Shift work and nights','High public pressure','Must stay calm under stress']
+  },
+  {id:'marketing',title:'Marketing Manager',icon:'📣',salary:99000,entry:58000,degree:"Bachelor's in Marketing/Business",minSchool:'cc',
+   desc:'Marketing workers help companies decide how to promote products, events, apps, or services. Daily life includes creativity, presentations, social media strategy, data, and deadlines.',
+   pros:['Creative and social work','Can work in many industries','Good path for strong communicators','Projects change often'],
+   cons:['Results are judged by numbers','Trends change quickly','Client feedback can be harsh','Deadlines can pile up']
+  },
+  {id:'mechanic',title:'Auto Mechanic / Technician',icon:'🛠️',salary:52000,entry:38000,degree:'Trade Program or Apprenticeship',minSchool:'trade',
+   desc:'Auto technicians diagnose and repair engines, brakes, tires, batteries, and computer systems in cars. Daily life is hands-on, practical, and useful for people who like fixing real things.',
+   pros:['Practical skill for life','Can enter work quickly','Problem-solving every day','Possible overtime income'],
+   cons:['Grease, noise, and heavy parts','Tool costs can add up','Physical strain','Pay grows with certifications']
+  },
+  {id:'pharmacist',title:'Pharmacist',icon:'💊',salary:132000,entry:105000,degree:'Doctor of Pharmacy (PharmD)',minSchool:'state',
+   desc:'Pharmacists check prescriptions, prevent medicine mistakes, answer patient questions, and manage pharmacy systems. It pays well but requires advanced science classes and careful attention.',
+   pros:['High income','Respected healthcare role','Uses science daily','Helps prevent medication harm'],
+   cons:['Long school path','Must be extremely accurate','Retail customers can be stressful','Standing for long shifts']
+  },
+  {id:'socialworker',title:'Social Worker',icon:'🤝',salary:58000,entry:42000,degree:"Bachelor's or Master's in Social Work",minSchool:'cc',
+   desc:'Social workers help families, children, patients, and communities connect with support. Daily life may include counseling, paperwork, home visits, and solving hard real-life problems.',
+   pros:['Meaningful helping career','Works with real people','Many settings: schools/hospitals/agencies','Builds communication skills'],
+   cons:['Emotional stress','Paperwork load','Pay may be modest','Hard family situations']
+  }
+];
+
+const COLLEGES=[
+  {id:'trade',name:'Vocational / Trade School',icon:'🔨',type:'Certificate (1-2 yrs)',tuitionDebt:16000,roomDebt:0,years:1.5,
+   note:'Real-world hands-on labs focused entirely on mechanical skill application. Commuter structure eliminates housing debt completely.',
+   pros:['Super fast entry to work','Extremely low total debt load'],
+   cons:['Zero residential campus life','No access to white-collar corporate networking']
+  },
+  {id:'cc',name:'Local Community College',icon:'🏫',type:'Associate Degree (2 yrs)',tuitionDebt:10000,roomDebt:16000,years:2,
+   note:'The single cheapest way to earn undergraduate credits. Perfect strategy for knocking out basic classes before a university transfer.',
+   pros:['Flexible night/day course options','Cheapest tuition rate structure'],
+   cons:['Fewer campus sports/activities','Lacks elite program specializations']
+  },
+  {id:'state',name:'In-State Public University',icon:'🏛️',type:'Public 4-Year Program',tuitionDebt:44000,roomDebt:48000,years:4,
+   note:'The baseline golden standard for state value. Packed with deep professional recruitment connections, huge sports arenas, and deep degree systems.',
+   pros:['Highly subsidized instate pricing','Vast campus infrastructure/labs'],
+   cons:['Huge classes with 300+ students','Bureaucratic registration bottlenecks']
+  },
+  {id:'oop',name:'Out-of-State Public University',icon:'🗺️',type:'Non-Resident 4-Year',tuitionDebt:116000,roomDebt:52000,years:4,note:'An identical degree to in-state schools, but located over state borders. You get heavily penalized with out-of-state tuition surcharges.',
+   pros:['Experience an entirely new city region','Expands geographical network maps'],
+   cons:['Enormous structural debt trap','Paying 3x the cost for identical classes']
+  },
+  {id:'private',name:'Private Liberal Arts University',icon:'🎓',type:'Private 4-Year Program',tuitionDebt:156000,roomDebt:56000,years:4,
+   note:'Independent academic settings boasting small class structures, customized counseling, and premium historical branding profiles.',
+   pros:['Elite teacher-to-student ratios','Prestigious executive alumni access'],
+   cons:['Crushing overall initial sticker price','Aggressive financial aid dependence']
+  },
+  {id:'elite',name:'Elite Ivy League University',icon:'🏆',type:'Top Tier 4-Year Program',tuitionDebt:232000,roomDebt:72000,years:4,
+   note:'World-famous hyper-exclusive campuses (Harvard, Stanford, MIT). Extreme entry competition. Offers unmatched generational business connections.',
+   pros:['Global elite career placement power','Top historical academic researchers'],
+   cons:['Near-impossible acceptance baselines','Enormous debt risk if no grants awarded']
+  },
+];
+
+const SCHOOL_ORDER=['trade','cc','state','oop','private','elite'];
+
+const EXPENSE_CATEGORIES=[
+  {
+    id:'housing',label:'Post-Grad Housing Options',icon:'🏠',
+    desc:'Where will you pitch your bed? This choice acts as the absolute anchor element of your entire adult cost framework.',
+    options:[
+      {id:'home',label:'🛑 Live at Home with Parents',price:0,note:'🔴 CON: Zero independence, family rules. 🟢 PRO: Completely free rent. Saves you $10,000+ per year to stack cash.'},
+      {id:'roommate',label:'👥 Split Flat with Roommates',price:850,note:'🔴 CON: Shared kitchens, messy flatmate arguments. 🟢 PRO: Low cost, split bills. Best realistic setup for fresh grads.'},
+      {id:'studio',label:'📦 Compact Solo Studio Flat',price:1100,note:'🔴 CON: Highly cramped space, bed sits in kitchen area. 🟢 PRO: Absolute solo privacy without sharing space.'},
+      {id:'onebr',label:'🛋️ Standard 1-Bedroom Apartment',price:1400,note:'🔴 CON: Expensive baseline drain on entry wages. 🟢 PRO: Separate living room, excellent space for young professional life.'},
+      {id:'luxury',label:'🏙️ Premium High-Rise Penthouse',price:2200,note:'🔴 CON: CRUSHING BUDGET TRAUMA! Consumes cash rapidly. 🟢 PRO: Resort style pool, gym access, city views.'}
+    ]
+  },
+  {
+    id:'food',label:'Grocery & Dining Lifestyle',icon:'🛒',
+    desc:'How will you handle nutrition? Food bills slip away from tracking easily.',
+    options:[
+      {id:'cook',label:'🍳 Dedicated Home Cook / Meal Prep',price:250,note:'🔴 CON: Demands 4+ hours of cleaning and chopping weekly. 🟢 PRO: Extremely cheap, highly healthy structural nutrition.'},
+      {id:'mix',label:'🍕 The Casual Fast-Casual Mix',price:450,note:'🔴 CON: Delivery app surcharges quietly bleed your account dry. 🟢 PRO: Cook some days, hit Chipotle or grab pizzas on lazy nights.'},
+      {id:'eatout',label:'👑 Fine Dining & Daily Delivery Apps',price:750,note:'🔴 CON: SEVERE WALLET HEMORRHAGE! $25 dinners every day turn into a financial nightmare. 🟢 PRO: Never wash a pan again.'}
+    ]
+  },
+  {
+    id:'transport',label:'Transportation & Car Loans',icon:'🚗',
+    desc:'Car options act as a massive psychological trap. Vehicles degrade in value fast while loan agreements lock you down.',
+    options:[
+      {id:'walk',label:'🚲 Eco Commuter (Bike/Walk/No Car)',price:0,note:'🔴 CON: Frozen winter commutes, restricted mobility maps. 🟢 PRO: 100% free. Dodge insurance, gas, maintenance, and car debt.'},
+      {id:'transit',label:'🚇 City Public Transit Pass',price:120,note:'🔴 CON: Delays, packed subway cars, fixed rail tracks. 🟢 PRO: Highly predictable low flat bill, zero car repair surprise spikes.'},
+      {id:'used10',label:'🚗 Beater Car (12+ Year Old Used Sedan)',price:250,note:'🔴 CON: Constant anxiety of a sudden breakdown. 🟢 PRO: Low asset cost, basic liability insurance keeps overhead low.'},
+      {id:'newbasic',label:'🚘 Factory Fresh Economy Sedan',price:550,note:'🔴 CON: Locks you into a rigid multi-year bank contract. 🟢 PRO: Reliable factory warranties, strong fuel efficiency.'},
+      {id:'luxury',label:'🏎️ Premium Sport SUV / Lifted Truck',price:1000,note:'🔴 CON: FISCAL RED ALERT! $850 bank loans + $150 high-octane fuel turns into an absolute cash incinerator. 🟢 PRO: Fast acceleration.'}
+    ]
+  },
+  {
+    id:'health',label:'Medical & Health Insurance Protection',icon:'🏥',
+    desc:'Adult bodies face unexpected accidents. Skipping out on legal medical protection exposes you to total financial ruin.',
+    options:[
+      {id:'employer',label:'🏥 Corporate Standard Plan (Premium Job)',price:150,note:'🔴 CON: Restricted to doctor network lists. 🟢 PRO: Fully subsidized corporate benefit package. Lowers out-of-pocket costs.'},
+      {id:'marketplace',label:'💸 Independent State Exchange Plan',price:400,note:'🔴 CON: Massive direct personal cost premium. 🟢 PRO: Full legal coverage even if you run a freelance business.'},
+      {id:'none',label:'❌ Complete Uninsured Gamble (No Protection!)',price:0,note:'⚠️ EXTREME BUDGET DISASTER RISK: One broken arm or emergency room appendix removal will trigger a $25,000 collections lawsuit.'}
+    ]
+  },
+  {
+    id:'personal',label:'Small Recurring Spending Habits',icon:'🧾',
+    desc:'These are the expenses people underestimate because each purchase feels small. Restaurants, coffee, makeup, gaming skins, clothes, subscriptions, and convenience stores can quietly become a second rent payment.',
+    options:[
+      {id:'barebones',label:'🚫 Rare Treats / No Routine Extras',price:40,note:'Life feels disciplined and sometimes boring: you mostly cook, skip impulse buys, reuse what you own, and say no to casual spending. PROS: fastest way to build savings, fewer regrets, emergency money grows. CONS: less social flexibility, more planning, may feel restrictive.'},
+      {id:'weeklyeat',label:'🍜 Eat Out Once a Week + Basic Extras',price:180,note:'A realistic moderate lifestyle: one meal out weekly, occasional coffee, basic toiletries, small streaming/app costs, and a few low-cost hangouts. PROS: sustainable fun, less burnout, still budget-aware. CONS: must track it, easy to drift upward, one extra shopping trip can break the plan.'},
+      {id:'makeupstyle',label:'💄 Makeup / Clothes / Self-Care Habit',price:320,note:'You buy skincare, makeup refills, hair products, clothes, accessories, or salon-type extras most weeks. PROS: confidence, personal style, social enjoyment. CONS: products run out constantly, trends push repeat buying, returns and “small hauls” can quietly erase savings.'},
+      {id:'dailyconvenience',label:'☕ Daily Coffee, Snacks, Apps, and Subscriptions',price:475,note:'You spend a little almost every day: coffee, vending machines, rideshare add-ons, game purchases, subscriptions, and convenience store runs. PROS: easy and fun day-to-day life. CONS: hard to remember, adds up brutally, creates a paycheck-to-paycheck feeling even with a decent salary.'},
+      {id:'everydayeatout',label:'🍔 Eat Out / Delivery Almost Every Day',price:850,note:'You rely on restaurants and delivery apps for most meals. PROS: no cooking, more time, convenient after work. CONS: fees, tips, drinks, and delivery markups explode monthly costs; health can suffer; long-term savings and debt payoff slow down dramatically.'}
+    ]
+  },
+
+  {
+    id:'savings',label:'Monthly Emergency Fund Accumulation',icon:'🏦',
+    desc:'Savings represent safety wealth. Without liquid capital reserves, unexpected accidents force you to use high-interest credit cards.',
+    options:[
+      {id:'none',label:'💸 Paycheck to Paycheck (Zero Saved)',price:0,note:'⚠️ CRITICAL WEALTH RISK: You hold a $0 safety buffer. A single flat tire or temporary job layoff will cause personal bankruptcy.'},
+      {id:'small',label:'🛡️ Defensive Emergency Micro-Buffer',price:150,note:'🔴 CON: Restricts current spending room. 🟢 PRO: Accumulates a helpful $1,800 annual shield against life emergencies.'},
+      {id:'tenpc',label:'📈 10% Wealth Engine Builder (Expert Core)',price:-1,note:'🔴 CON: Demands iron personal discipline. 🟢 PRO: Automatically compounds consistent net worth growth. The smart foundation for future investing.'}
+    ]
+  },
+];
+
+const ADMISSION_ODDS = {
+  'A': { trade: 100, cc: 100, state: 98, oop: 92, private: 88, elite: 18 },
+  'B': { trade: 100, cc: 100, state: 82, oop: 74, private: 65, elite: 4 },
+  'C': { trade: 92,  cc: 100, state: 48, oop: 38, private: 28, elite: 0 },
+  'D': { trade: 55,  cc: 92,  state: 10, oop: 5,  private: 2,  elite: 0 }
+};
+
+const CAREER_SUCCESS_ODDS = {
+  'A': '🟢 95% PIPELINE SUCCESS PROBABILITY: Your elite study frameworks and deep organization skills mean you are highly likely to sail through advanced professional degrees, licensing boards, and rigorous corporate selection pipelines.',
+  'B': '🔵 78% PIPELINE SUCCESS PROBABILITY: Strong execution baseline. As long as you stay proactive and actively defeat procrastination habits, you possess the capacity to clear professional qualification exams.',
+  'C': '🟡 42% PIPELINE SUCCESS PROBABILITY: SEVERE TRAINING RUN FAILURE RISK. Professional programs demand immense independent reading volumes. Your current homework habits indicate high drop-out or certification failure risks.',
+  'D': '🔴 12% PIPELINE SUCCESS PROBABILITY: CRITICAL PIPELINE ACCIDENT PROFILE. The training requirements for competitive paths will trigger immediate academic probation blocks unless you execute an instant classroom turnaround.'
+};
+
+let state={grade:null,job:null,college:null,livingAtHome:false,totalDebt:0,loanMonthly:0,takeHome:0,picks:{},monthGame:null};
+
+function goTo(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  const target = document.getElementById(id);
+  if(target) { target.classList.add('active'); }
+  if(id==='s-job')renderJobs();
+  if(id==='s-job-info')renderJobInfo();
+  if(id==='s-college')renderColleges();
+  if(id==='s-budget')renderBudget();
+}
+
+function fmt(n){return '$'+Math.round(n).toLocaleString();}
+function choiceDetails(note){const parts=note.split(/PROS?:|CONS?:|🔴 CON:|🟢 PRO:|⚠️/i).filter(x=>x.trim()); return note;}
+function renderProsCons(note){return `<div style="font-size:12px;color:var(--color-text-secondary);line-height:1.45;margin-top:6px">${note}</div>`;}
+function calcLoan(p,r,y){if(p<=0)return 0;const m=r/12,n=y*12;return p*(m*Math.pow(1+m,n))/(Math.pow(1+m,n)-1);}
+
+function selectGrade(gLetter) {
+  state.grade = gLetter;
+  document.querySelectorAll('.grade-btn').forEach(btn => btn.classList.remove('selected'));
+  const targetBtn = document.getElementById('g-' + gLetter);
+  if(targetBtn) targetBtn.classList.add('selected');
+  document.getElementById('btn-grades').disabled = false;
+}
+
+function renderJobs(){
+  const g=document.getElementById('job-grid');
+  if(!g) return;
+  g.innerHTML='';
+  JOBS.forEach(j=>{
+    const b=document.createElement('button');
+    b.className='job-btn';b.id='job-'+j.id;
+    b.innerHTML=`<div style="font-size:32px;margin-bottom:6px">${j.icon}</div><div style="font-size:14px;font-weight:700;color:var(--color-text-primary)">${j.title}</div><div style="font-size:11.5px;color:var(--color-text-secondary);margin-top:2px;font-weight:500">🎓 Min: ${j.degree.split(' (')[0]}</div><div style="font-size:13.5px;color:#2563eb;font-weight:700;margin-top:6px;background:#eff6ff;padding:4px 8px;border-radius:4px;display:inline-block">Median: ${fmt(j.salary)}/yr</div>`;
+    b.onclick=()=>{document.querySelectorAll('.job-btn').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');state.job=j;document.getElementById('btn-job').disabled=false;};
+    g.appendChild(b);
+  });
+}
+
+function renderJobInfo(){
+  const j=state.job;if(!j)return;
+  const take=Math.round(j.entry/12*0.73);
+  const successText = CAREER_SUCCESS_ODDS[state.grade || 'B'];
+  
+  document.getElementById('ji-title').textContent=j.icon+' Career Analysis: ' + j.title;
+  document.getElementById('ji-stats').innerHTML=`
+    <div class="stat-card"><div class="stat-label">US Median Salary</div><div class="stat-value" style="color:#2563eb">${fmt(j.salary)}</div></div>
+    <div class="stat-card"><div class="stat-label">Your Fresh Entry Pay</div><div class="stat-value">${fmt(j.entry)}</div></div>
+    <div class="stat-card"><div class="stat-label">Est. Post-Tax Monthly</div><div class="stat-value" style="color:#16a34a">${fmt(take)}</div></div>
+    <div class="stat-card"><div class="stat-label">Minimum Degree Level</div><div class="stat-value" style="font-size:14px;margin-top:4px">${j.degree}</div></div>`;
+  
+  document.getElementById('ji-desc').innerHTML=j.desc + '<div class="life-impact"><strong>Middle school connection:</strong> reading stamina, math practice, turning work in on time, teamwork, and asking questions are habits that transfer into this career path.</div>';
+  
+  const pcContainer = document.getElementById('ji-proscons');
+  pcContainer.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-weight:700;color:#16a34a;margin-bottom:2px">🟢 GREEN PROS:</div>
+      ${j.pros.map(p=>`<div class="pro-item">✅ ${p}</div>`).join('')}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="font-weight:700;color:#dc2626;margin-bottom:2px">🔴 RED CONS:</div>
+      ${j.cons.map(c=>`<div class="con-item">❌ ${c}</div>`).join('')}
+    </div>`;
+
+  const sBox = document.getElementById('ji-success-box');
+  if(state.grade === 'A' || state.grade === 'B') {
+    sBox.className = 'success-alert-box';
+  } else {
+    sBox.className = 'danger-alert-box';
+  }
+  sBox.innerHTML = `<h3>Grade Impact Simulation Matrix</h3><p style="margin-bottom:0;color:inherit;font-size:13.5px">${successText}</p>`;
+}
+
+function isSchoolAllowed(c,j){
+  return SCHOOL_ORDER.indexOf(c.id)>=SCHOOL_ORDER.indexOf(j.minSchool);
+}
+
+function renderColleges(){
+  const j=state.job;if(!j){goTo('s-job');return;}
+  state.college=null;state.livingAtHome=false;
+  document.getElementById('btn-college').disabled=true;
+  const list=document.getElementById('college-list');
+  if(!list) return;
+  list.innerHTML='';
+  
+  COLLEGES.forEach(c=>{
+    const allowed=isSchoolAllowed(c,j);
+    if(!allowed){
+      const d=document.createElement('div');d.className='locked-school';
+      d.innerHTML=`<div style="display:flex;gap:12px;align-items:flex-start"><span style="font-size:28px">${c.icon}</span><div><div style="font-size:14px;font-weight:700;color:var(--color-text-tertiary)">${c.name}</div><div style="font-size:12px;color:var(--color-text-tertiary)">${c.type}</div><span class="tag tag-bad" style="margin-top:6px;display:inline-block">🔒 LOCKED OUT: Program too short to grant a ${j.degree.split(' (')[0]} degree</span></div></div>`;
+      list.appendChild(d);return;
+    }
+    
+    const oddsValue = ADMISSION_ODDS[state.grade || 'B'][c.id];
+    let oddsTag = 'tag-good';
+    let alertBorder = '';
+    if(oddsValue === 0) { oddsTag = 'tag-bad'; alertBorder='border: 1.5px solid #dc2626; background: #fff5f5;'; }
+    else if(oddsValue < 50) { oddsTag = 'tag-warn'; alertBorder='border: 1.5px solid #f59e0b;'; }
+    else if(oddsValue < 85) oddsTag = 'tag-info';
+
+    const tuitionOnly=Math.round(calcLoan(c.tuitionDebt,0.065,10));
+    const withRoom=Math.round(calcLoan(c.tuitionDebt+c.roomDebt,0.065,10));
+    const btn=document.createElement('button');
+    btn.className='choice-btn';btn.id='col-'+c.id; btn.style = alertBorder;
+    btn.innerHTML=`<div style="display:flex;gap:12px;align-items:flex-start">
+      <span style="font-size:32px">${c.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex; justify-content:space-between; align-items:center;flex-wrap:wrap;gap:4px">
+          <div style="font-size:15px;font-weight:700;color:var(--color-text-primary)">${c.name}</div>
+          <span class="tag ${oddsTag}" style="font-size:10px">🎯 Acceptance Chance: ${oddsValue}%</span>
+        </div>
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-bottom:6px;font-weight:600">${c.type}</div>
+        
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;background:rgba(0,0,0,0.02);padding:6px;border-radius:6px;border:1px solid var(--color-border-tertiary)">
+          <div><div style="font-size:9px;font-weight:700;color:var(--color-text-tertiary);text-transform:uppercase">Tuition Debt</div><div style="font-size:13px;font-weight:700;color:#dc2626">${fmt(c.tuitionDebt)}</div></div>
+          <div><div style="font-size:9px;font-weight:700;color:var(--color-text-tertiary);text-transform:uppercase">Dorm/Food Debt</div><div style="font-size:13px;font-weight:700;color:#dc2626">${c.roomDebt>0?fmt(c.roomDebt):'❌ $0'}</div></div>
+          <div><div style="font-size:9px;font-weight:700;color:var(--color-text-tertiary);text-transform:uppercase">Duration</div><div style="font-size:13px;font-weight:700;color:var(--color-text-primary)">${c.years} Yrs</div></div>
+        </div>
+        
+        <p style="font-size:12px;color:var(--color-text-secondary);margin-bottom:10px;line-height:1.4">${c.note}</p>
+        
+        <div class="pros-cons" style="margin-bottom:12px">
+          <div class="pro-item" style="font-size:11px">👍 PRO: ${c.pros[0]}</div>
+          <div class="con-item" style="font-size:11px">👎 CON: ${c.cons[0]}</div>
+        </div>
+
+        ${c.roomDebt>0?`<div style="font-size:11.5px;font-weight:700;color:var(--color-text-primary);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.3px">📍 Select Post-Admissions Residential Path:</div>
+        <div style="display:grid;grid-template-columns:1fr;gap:8px">
+          <button class="opt-btn" id="live-home-${c.id}" onclick="selectLiving(event,'${c.id}',true,${tuitionOnly})">
+            <div style="display:flex;justify-content:space-between;width:100%"><span class="opt-name">🏡 Commute & Live at Home</span><span class="opt-price">${fmt(tuitionOnly)}/mo loan</span></div>
+            <div class="opt-note">🟢 Avoids dorm loans completely. Keeps final loan tracking sheet lean. 🔴 CON: Misses traditional out-of-town independence.</div>
+          </button>
+          <button class="opt-btn" id="live-dorm-${c.id}" onclick="selectLiving(event,'${c.id}',false,${withRoom})">
+            <div style="display:flex;justify-content:space-between;width:100%"><span class="opt-name">🏢 Pack Bags & Move into Campus Dorms</span><span class="opt-price">${fmt(withRoom)}/mo loan</span></div>
+            <div class="opt-note">🔴 HEAVY DEBT WARNING: Appends an extra ${fmt(c.roomDebt)} onto loans. 🟢 PRO: Complete lifestyle shift away from parental supervision.</div>
+          </button>
+        </div>`:`<div style="font-size:12px;color:#166534;font-style:italic;background:#f0fdf4;padding:6px;border-radius:4px;font-weight:600">✨ Commuter Specialization: Campus housing loans are completely bypassed in this vocational structure.</div>`}
+      </div>
+    </div>`;
+    
+    btn.onclick=(e)=>{
+      if(e.target.closest('.opt-btn'))return;
+      if(oddsValue === 0) {
+        alert("⛔ REJECTION NOTICE: Your current reports and academic background triggered an automatic processing denial at this institution level. Boost your grade consistency to unlock high-tier universities!");
+        return;
+      }
+      if(c.roomDebt===0){
+        document.querySelectorAll('.choice-btn').forEach(x=>x.classList.remove('selected'));
+        btn.classList.add('selected');
+        state.college=c;state.livingAtHome=false;
+        state.totalDebt=c.tuitionDebt;
+        state.loanMonthly=Math.round(calcLoan(c.tuitionDebt,0.065,10));
+        document.getElementById('btn-college').disabled=false;
+      }
+    };
+    list.appendChild(btn);
+  });
+}
+
+function selectLiving(e,colId,atHome,monthlyLoan){
+  e.stopPropagation();
+  const oddsValue = ADMISSION_ODDS[state.grade || 'B'][colId];
+  if(oddsValue === 0) {
+    alert("⛔ REJECTION NOTICE: Academic history does not satisfy minimum application safety margins.");
+    return;
+  }
+  const c=COLLEGES.find(x=>x.id===colId);
+  document.querySelectorAll('.choice-btn').forEach(x=>x.classList.remove('selected'));
+  document.querySelectorAll('.opt-btn').forEach(x=>x.classList.remove('selected'));
+  document.getElementById('col-'+colId).classList.add('selected');
+  const btnId=atHome?'live-home-'+colId:'live-dorm-'+colId;
+  document.getElementById(btnId).classList.add('selected');
+  state.college=c;state.livingAtHome=atHome;
+  state.totalDebt=atHome?c.tuitionDebt:c.tuitionDebt+c.roomDebt;
+  state.loanMonthly=monthlyLoan;
+  document.getElementById('btn-college').disabled=false;
+}
+
+function confirmCollege(){
+  if(!state.college||!state.job)return;
+  const j=state.job,c=state.college;
+  const interest=state.loanMonthly*120-state.totalDebt;
+  const debtRatio=Math.round((state.loanMonthly/(j.entry/12*0.73))*100);
+  let vtag,verdict,alertBoxClass='info-box';
+  if(debtRatio<10){verdict='Excellent Debt Ratio! Easily handled.';vtag='tag-good';alertBoxClass='success-alert-box';}
+  else if(debtRatio<20){verdict='Moderate Debt Load. You will definitely notice this reduction from your checks.';vtag='tag-info';}
+  else if(debtRatio<30){verdict='High Student Debt Load. Requires aggressive budgeting tradeoffs later.';vtag='tag-warn';alertBoxClass='danger-alert-box';}
+  else{verdict='CRITICAL STUDENT DEBT DANGER. Your educational costs are overwhelming your entry paycheck tier!';vtag='tag-bad';alertBoxClass='danger-alert-box';}
+  
+  const livingNote=state.livingAtHome?`🏡 SMART MOVE SAVINGS EFFECT: By remaining with family, you blocked ${fmt(c.roomDebt)} of high-interest housing loans from landing on your ledger.`:`🏫 CAMPUS RESIDENTIAL MULTIPLIER: Moving away added ${fmt(c.roomDebt)} of compound housing debt onto your portfolio.`;
+  
+  document.getElementById('loan-details').innerHTML=`
+    <div class="card">
+      <div class="grid-2">
+        <div class="stat-card"><div class="stat-label">Total Principal Debt</div><div class="stat-value" style="color:#b91c1c">${fmt(state.totalDebt)}</div></div>
+        <div class="stat-card"><div class="stat-label">Mandatory Monthly Cut</div><div class="stat-value" style="color:#b91c1c">${fmt(state.loanMonthly)}/mo</div></div>
+        <div class="stat-card"><div class="stat-label">Total Lifetime Interest</div><div class="stat-value">${fmt(Math.max(0,interest))}</div></div>
+        <div class="stat-card"><div class="stat-label">% of post-tax wages</div><div class="stat-value">${debtRatio}%</div></div>
+      </div>
+      <span class="tag ${vtag}">${verdict}</span>
+    </div>
+    <div class="${alertBoxClass}">
+      <h3>⚠️ Hidden Cost Warning Breakdown</h3>
+      <p style="margin-bottom:0;color:inherit;font-size:13.5px">${livingNote}</p>
+      <p style="margin-top:8px;margin-bottom:0;color:inherit;font-size:13.5px">Because banks use compound interest formulas, your raw borrowed sum of <strong>${fmt(state.totalDebt)}</strong> balloons into a total repayment obligation of <strong>${fmt(state.loanMonthly*120)}</strong> across 10 years. You are handing the bank <strong>${fmt(Math.max(0,interest))} in pure interest profit</strong>!</p>
+    </div>`;
+  goTo('s-loans');
+}
+
+
+function longTermEffect(catId,optId,monthly){
+  const yearly=Math.round(monthly*12);
+  const effects={
+    housing:{home:'You gain cash quickly, but trade independence and privacy for family rules.',roommate:'Usually the best starter balance: lower rent with some independence.',studio:'Privacy improves, but housing begins taking a serious bite from entry pay.',onebr:'Comfortable adult life, but harder to save unless income is strong.',luxury:'Looks impressive, but rent can dominate your entire financial life.'},
+    food:{cook:'Strongest long-term food choice. Groceries are predictable and leftovers protect busy weeks.',mix:'Realistic if tracked. A few extra delivery nights can push this into the expensive category.',eatout:'Convenient now, expensive later. Delivery fees and tips destroy savings capacity.'},
+    transport:{walk:'Maximum savings, but only realistic if work, groceries, and weather cooperate.',transit:'Predictable monthly cost. Less freedom, but no surprise repair bills.',used10:'Cheap payment, but repairs can appear suddenly.',newbasic:'Reliable but locks income into a multi-year payment.',luxury:'High payment plus fuel, insurance, tires, and repairs slow wealth building.'},
+    health:{employer:'Usually the most protective option when available.',marketplace:'Expensive, but it protects against catastrophic bills.',none:'A single emergency can wipe out months or years of progress.'},
+    personal:{barebones:'About '+fmt(yearly)+' per year. Best for debt payoff, but socially restrictive.',weeklyeat:'About '+fmt(yearly)+' per year. Balanced if you track it.',makeupstyle:'About '+fmt(yearly)+' per year. Manageable only with a firm monthly cap.',dailyconvenience:'About '+fmt(yearly)+' per year. Small purchases become a major annual bill.',everydayeatout:'About '+fmt(yearly)+' per year. This can delay savings, car payoff, and moving goals.'},
+    savings:{none:'No buffer. Emergencies become debt.',small:'Builds a real starter cushion over time.',tenpc:'Creates the strongest long-term stability and investing base.'}
+  };
+  return (effects[catId]&&effects[catId][optId])?effects[catId][optId]:'This choice changes monthly flexibility and long-term savings.';
+}
+
+function renderBudget(){
+  const j=state.job;if(!j)return;
+  const takeHome=Math.round(j.entry/12*0.73);
+  state.takeHome=takeHome;state.picks={};
+  document.getElementById('budget-income-card').innerHTML=`
+    <h3 style="color:#166534">💵 Liquid Monthly Take-Home Check</h3>
+    <div class="grid-2" style="margin-top:8px">
+      <div class="stat-card"><div class="stat-label">Starting Entry Gross</div><div class="stat-value">${fmt(j.entry)}/yr</div></div>
+      <div class="stat-card" style="background:#f0fdf4;border-color:#bbf7d0"><div class="stat-label" style="color:#166534">Net Monthly Wallet</div><div class="stat-value" style="color:#166534">${fmt(takeHome)}/mo</div></div>
+    </div>
+    <div class="danger-alert-box" style="margin-bottom:0;padding:.75rem;font-size:12.5px">
+      ⚠️ <strong>AUTOMATIC TRANSACTION DEDUCTION:</strong> A student loan check of <strong>${fmt(state.loanMonthly)}/mo</strong> has been automatically hardcoded into your expense requirements below.
+    </div>`;
+  const sec=document.getElementById('expense-sections');
+  if(!sec) return;
+  sec.innerHTML='';
+  
+  EXPENSE_CATEGORIES.forEach(cat=>{
+    const card=document.createElement('div');
+    card.className='card';
+    const optsHtml=cat.options.map(o=>{
+      let priceLabel,priceVal;
+      if(o.price===-1){priceVal=Math.round(takeHome*0.1);priceLabel=fmt(priceVal)+'/mo';}
+      else{priceVal=o.price;priceLabel=o.price===0?'✨ Free':fmt(o.price)+'/mo';}
+      
+      let dangerClass = '';
+      if(o.id==='luxury'||o.id==='eatout'||o.id==='none') {
+        dangerClass = 'border-color:#f87171; background:#fffdfd;';
+      }
+      if(o.id==='cook'||o.id==='home'||o.id==='tenpc'||o.id==='employer'||o.id==='walk') {
+        dangerClass = 'border-color:#86efac; background:#fbfdfb;';
+      }
+
+      return `<button class="opt-btn" id="opt-${cat.id}-${o.id}" data-cat="${cat.id}" data-opt="${o.id}" data-price="${priceVal}" style="${dangerClass}" onclick="pickOption('${cat.id}','${o.id}',${priceVal},this)">
+        <div style="display:flex;justify-content:space-between;width:100%;align-items:center">
+          <span class="opt-name">${o.label}</span>
+          <span class="opt-price">${priceLabel}</span>
+        </div>
+        <div class="opt-note">${o.note}</div><div class="life-impact"><strong>Life effect:</strong> This choice costs about <strong>${fmt(priceVal*12)} per year</strong>. Choosing a cheaper option can mean less stress, more savings, and more freedom when emergencies happen.</div><div style="font-size:11.5px;color:#475569;margin-top:6px;line-height:1.35"><strong>Long-term effect:</strong> ${longTermEffect(cat.id,o.id,priceVal)}</div>
+      </button>`;
+    }).join('');
+    card.innerHTML=`<div class="expense-title" style="font-size:15px;font-weight:700">${cat.icon} ${cat.label}</div><p style="font-size:12.5px;color:var(--color-text-secondary);margin-bottom:8px;line-height:1.4">${cat.desc}</p><div class="opt-grid">${optsHtml}</div>`;
+    sec.appendChild(card);
+  });
+  updateRemaining();
+}
+
+function pickOption(catId,optId,price,btn){
+  state.picks[catId]={optId,price};
+  document.querySelectorAll(`[data-cat="${catId}"]`).forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  updateRemaining();
+}
+
+function updateRemaining(){
+  const loanTotal=state.loanMonthly||0;
+  const picksTotal=Object.values(state.picks).reduce((a,b)=>a+b.price,0);
+  const total=loanTotal+picksTotal;
+  const rem=state.takeHome-total;
+  const allPicked=EXPENSE_CATEGORIES.every(c=>state.picks[c.id]!==undefined);
+  document.getElementById('btn-results').disabled=!allPicked;
+  const el=document.getElementById('budget-remaining');
+  if(!allPicked){el.textContent='Complete All Selections';el.style.fontSize='14px';el.style.color='var(--color-text-tertiary)';}
+  else{el.textContent=fmt(rem);el.style.fontSize='24px';el.style.color=rem>=0?'#16a34a':'#dc2626';}
+  const pct=Math.max(0,Math.min(100,(rem/state.takeHome)*100));
+  const bar=document.getElementById('budget-meter');
+  bar.style.width=(allPicked?pct:0)+'%';
+  bar.style.background=rem<0?'#dc2626':rem<200?'#ea580c':'#16a34a';
+  const picked=Object.keys(state.picks).length;
+  document.getElementById('budget-tally').textContent=allPicked?`Total Monthly Cost Outflow: ${fmt(total)} / ${fmt(state.takeHome)} Income Net Balance`:`Tracking: Selected ${picked} of ${EXPENSE_CATEGORIES.length} Lifecycle Cost Centers`;
+}
+
+
+
+const WEEKLY_EVENTS = [
+  {type:'good', title:'Quiet Week: Stayed on Plan', amount:0,
+   text:'Nothing dramatic happened this week. You cooked or spent exactly as planned, got to work without extra costs, and avoided random online purchases.',
+   lesson:'This is what a budget is supposed to do: make normal weeks boring and predictable.'},
+  {type:'good', title:'Packed Lunches and Skipped Impulse Buys', amount:-65,
+   text:'You brought lunch, skipped two delivery orders, and ignored a few small “only $8” purchases that usually disappear from memory but not from your bank account.',
+   lesson:'Small daily decisions create real monthly breathing room.'},
+  {type:'good', title:'Extra Shift / Side Gig Income', amount:-140,
+   text:'A weekend opportunity opened up: tutoring, babysitting, overtime, delivery work, or helping a neighbor. It cost some free time, but added cash.',
+   lesson:'Extra income helps, but relying on it every month is risky because it is not guaranteed.'},
+  {type:'bad', title:'Transportation Disruption', amount:185,
+   text:'Your commute got messy. A tire needed replacement, your car battery died, transit delays forced rideshares, or you had to pay for parking after missing your usual option.',
+   lesson:'Transportation costs are irregular. Older cars and long commutes need extra emergency margin.'},
+  {type:'bad', title:'Phone Repair / Tech Replacement', amount:165,
+   text:'Your phone screen cracked, headphones died, or a required work charger/laptop accessory had to be replaced immediately. Waiting was not realistic because work depends on it.',
+   lesson:'Modern life has required tech costs. They are not luxuries when school or work depends on them.'},
+  {type:'bad', title:'Urgent Care / Medication Cost', amount:240,
+   uninsuredAmount:950,
+   text:'You got sick, had a minor injury, or needed an urgent prescription. With insurance this is annoying; without insurance it becomes a major financial hit.',
+   lesson:'Health insurance does not stop bills, but it can turn a financial disaster into a manageable expense.'},
+  {type:'bad', title:'Social and Family Obligation', amount:115,
+   text:'A birthday, family dinner, school event, wedding shower, or group gift appeared. Saying no to everything is unrealistic, so the cost hit your budget.',
+   lesson:'Real budgets need a category for social life, gifts, and family expectations.'},
+  {type:'bad', title:'Utility / Household Bill Spike', amount:135,
+   text:'Electricity, heat, internet fees, laundry, or household supplies ran higher than expected. The bill was not optional and arrived before payday.',
+   lesson:'Rent is not the full cost of housing. Utilities and supplies fluctuate.'},
+  {type:'bad', title:'Work Clothes or Shoes Replacement', amount:125,
+   text:'Your job required presentable clothes, nonslip shoes, scrubs, weather gear, or a replacement uniform item. It was boring, necessary, and not really avoidable.',
+   lesson:'Employment has maintenance costs that do not show up in salary numbers.'},
+  {type:'bad', title:'Delivery App Creep', amount:155,
+   text:'A busy week turned into multiple convenience meals. Each order looked small alone, but tips, fees, and taxes stacked quickly.',
+   lesson:'Convenience spending is one of the easiest ways to destroy a good-looking budget.'}
+];
+
+function selectedLabel(catId){
+  const cat=EXPENSE_CATEGORIES.find(c=>c.id===catId);
+  const pick=state.picks[catId];
+  if(!cat||!pick)return '';
+  const opt=cat.options.find(o=>o.id===pick.optId);
+  return opt?opt.label.replace(/^[^A-Za-z0-9]+\s*/,''):'';
+}
+function baseMonthlyNumbers(){
+  const loanTotal=state.loanMonthly||0;
+  const picksTotal=Object.values(state.picks).reduce((a,b)=>a+b.price,0);
+  const total=loanTotal+picksTotal;
+  return {loanTotal,picksTotal,total,plannedMargin:state.takeHome-total};
+}
+function showBudgetCheckpoint(){
+  const n=baseMonthlyNumbers();
+  const rentPct=Math.round(((state.picks.housing?.price||0)/state.takeHome)*100);
+  const debtPct=Math.round(((state.loanMonthly||0)/state.takeHome)*100);
+  const savingsPick=state.picks.savings?.optId;
+  const healthPick=state.picks.health?.optId;
+  let verdict='Strong'; let cls='success-alert-box'; let note='You enter the month with enough planned margin to absorb some normal surprises.';
+  if(n.plannedMargin<0){verdict='Deficit before emergencies'; cls='danger-alert-box'; note='Your budget is already negative before the month challenge begins. Any surprise will push you deeper into debt.';}
+  else if(n.plannedMargin<150){verdict='Very fragile'; cls='danger-alert-box'; note='You technically balanced the budget, but your remaining cushion is so small that ordinary life expenses can break it.';}
+  else if(n.plannedMargin<500){verdict='Stable but tight'; cls='info-box'; note='You can survive a normal month, but one larger emergency may erase your cushion.';}
+  const cautions=[];
+  if(rentPct>35)cautions.push('Housing is above a safe comfort zone, so you may feel “house poor.”');
+  if(debtPct>20)cautions.push('Student loans are taking a large share of take-home pay.');
+  if(savingsPick==='none')cautions.push('No emergency savings means surprises must come from this month\'s cash or credit cards.');
+  if(healthPick==='none')cautions.push('No health insurance turns a small medical problem into a large bill.');
+  document.getElementById('budget-check-body').innerHTML=`
+    <div class="${cls}"><h3>${verdict}</h3><p style="margin-bottom:0;color:inherit">${note}</p></div>
+    <div class="card"><h3>Budget Performance Snapshot</h3><div class="grid-2">
+      <div class="stat-card"><div class="stat-label">Take-Home Income</div><div class="stat-value">${fmt(state.takeHome)}</div></div>
+      <div class="stat-card"><div class="stat-label">Planned Bills</div><div class="stat-value">${fmt(n.total)}</div></div>
+      <div class="stat-card"><div class="stat-label">Planned Cushion</div><div class="stat-value" style="color:${n.plannedMargin>=0?'#166534':'#b91c1c'}">${fmt(n.plannedMargin)}</div></div>
+      <div class="stat-card"><div class="stat-label">Rent Share</div><div class="stat-value">${rentPct}%</div></div>
+      <div class="stat-card"><div class="stat-label">Loan Share</div><div class="stat-value">${debtPct}%</div></div>
+      <div class="stat-card"><div class="stat-label">Savings Choice</div><div class="stat-value" style="font-size:14px">${selectedLabel('savings')}</div></div>
+    </div></div>
+    ${cautions.length?`<div class="danger-alert-box"><h3>Risk Flags Before the Challenge</h3>${cautions.map(x=>`<p style="margin-bottom:6px;color:inherit">• ${x}</p>`).join('')}</div>`:`<div class="success-alert-box"><h3>Good Setup</h3><p style="margin-bottom:0;color:inherit">You selected enough protection that the weekly challenge will test your plan without automatically destroying it.</p></div>`}
+    <div class="info-box"><strong>Next:</strong> The month will move through four realistic weeks. Some weeks may be quiet; others may add irregular costs. Your goal is to finish the month with cash left and without relying on debt.</div>`;
+  goTo('s-budget-check');
+}
+function chooseWeeklyEvents(){
+  const events=[];
+  const margin=baseMonthlyNumbers().plannedMargin;
+  const noInsurance=state.picks.health&&state.picks.health.optId==='none';
+  const noSavings=state.picks.savings&&state.picks.savings.optId==='none';
+  const usedCar=state.picks.transport&&state.picks.transport.optId==='used10';
+  const luxuryCar=state.picks.transport&&state.picks.transport.optId==='luxury';
+  const eatOut=state.picks.food&&state.picks.food.optId==='eatout';
+  events.push(margin>300?WEEKLY_EVENTS[0]:{type:'bad',title:'Paycheck Timing Crunch',amount:75,text:'A bill cleared before payday while your cushion was thin. Nothing huge happened, but timing alone created stress.',lesson:'Cash flow timing matters even when annual income looks adequate.'});
+  events.push(eatOut?WEEKLY_EVENTS[9]:WEEKLY_EVENTS[1]);
+  events.push(noInsurance?{...WEEKLY_EVENTS[5],amount:WEEKLY_EVENTS[5].uninsuredAmount,title:'Uninsured Urgent Care Bill'}:WEEKLY_EVENTS[5]);
+  if(noSavings) events.push({type:'bad',title:'Emergency Fund Missing When Needed',amount:260,text:'A routine surprise hit the same month as your normal bills. Because you saved $0, there was no separate emergency bucket to absorb it.',lesson:'Emergency savings do not prevent problems. They prevent problems from becoming debt.'});
+  else if(usedCar||luxuryCar) events.push(WEEKLY_EVENTS[3]);
+  else if(margin>650) events.push(WEEKLY_EVENTS[2]);
+  else events.push(WEEKLY_EVENTS[6]);
+  return events.slice(0,4);
+}
+function startMonthGame(){
+  const nums=baseMonthlyNumbers();
+  state.monthGame={week:0,events:chooseWeeklyEvents(),eventTotal:0,plannedMargin:nums.plannedMargin,totalBase:nums.total,history:[]};
+  renderWeek();
+  goTo('s-weekly');
+}
+function renderWeek(){
+  const game=state.monthGame;
+  const event=game.events[game.week];
+  const cost=event.amount;
+  game.currentEventCost=cost;
+  const afterThis=game.plannedMargin-game.eventTotal-cost;
+  const cumulative=game.eventTotal+cost;
+  const cashColor=afterThis>=0?'#16a34a':'#dc2626';
+  document.getElementById('week-title').textContent=`Week ${game.week+1}: ${event.title}`;
+  document.getElementById('week-body').innerHTML=`
+    <div class="${event.type==='good'?'success-alert-box':'danger-alert-box'}">
+      <h3>${event.type==='good'?'✅':'⚠️'} What happened this week</h3>
+      <p style="color:inherit">${event.text}</p>
+      <p style="margin-bottom:0;color:inherit"><strong>Real-life lesson:</strong> ${event.lesson}</p>
+    </div>
+    <div class="card"><h3>Cash Flow for This Week</h3><div class="grid-2">
+      <div class="stat-card"><div class="stat-label">Started Month With</div><div class="stat-value">${fmt(game.plannedMargin)}</div></div>
+      <div class="stat-card"><div class="stat-label">This Week Impact</div><div class="stat-value" style="color:${cost>0?'#dc2626':'#16a34a'}">${cost<0?'+':''}${fmt(-cost)}</div></div>
+      <div class="stat-card"><div class="stat-label">Total Surprise Costs</div><div class="stat-value" style="color:${cumulative>0?'#dc2626':'#16a34a'}">${fmt(cumulative)}</div></div>
+      <div class="stat-card"><div class="stat-label">Projected Month-End</div><div class="stat-value" style="color:${cashColor}">${fmt(afterThis)}</div></div>
+    </div>
+    <p style="font-size:13px;margin-bottom:0">${afterThis<0?'You are now projected to end the month negative unless you cut spending, use savings, or take on debt.':'You are still projected to finish the month above zero, but the remaining cushion is smaller.'}</p></div>`;
+  document.getElementById('btn-week-next').textContent=game.week===3?'Finish Month & View Scorecard ↗':'Next Week ↗';
+}
+function nextWeek(){
+  const game=state.monthGame;
+  const ev=game.events[game.week];
+  game.eventTotal += game.currentEventCost || 0;
+  game.history.push(ev);
+  game.week += 1;
+  if(game.week>=4){showMonthResults();return;}
+  renderWeek();
+}
+function showMonthResults(){checkBudget(true);}
+function checkBudget(fromMonthGame){
+  const loanTotal=state.loanMonthly||0;
+  const picksTotal=Object.values(state.picks).reduce((a,b)=>a+b.price,0);
+  const total=loanTotal+picksTotal;
+  const eventTotal=state.monthGame?state.monthGame.eventTotal:0;
+  const plannedRem=state.takeHome-total;
+  const rem=plannedRem-eventTotal;
+  let grade,msg,isSuccess=false;
+  if(rem<0){grade='🚨 Month Failed: You Ended in the Red';msg=`You finished ${fmt(Math.abs(rem))} short. In real life this usually means credit card debt, borrowing from family, overdraft fees, or skipping a bill.`;}
+  else if(rem<150){grade='⚠️ Barely Survived the Month';msg='You stayed above zero, but your final cushion was extremely thin. One more small problem would have pushed you negative.';}
+  else if(rem<500){grade='😐 Survived With Limited Flexibility';msg='You handled the month, but the budget did not leave much room for investing, travel, or bigger future goals.';}
+  else{grade='🎉 Successful Month: Strong Budget Control';msg='You finished with meaningful cash left after realistic surprises. This is the kind of margin that builds stability over time.';isSuccess=true;}
+  const history=(state.monthGame?.history||[]).map((e,i)=>`<div style="padding:10px 0;border-bottom:1px solid var(--color-border-tertiary)"><strong>Week ${i+1}: ${e.title}</strong><br><span style="font-size:12px;color:var(--color-text-secondary)">${e.text}</span><br><span style="font-size:12px;font-weight:700;color:${e.amount>0?'#b91c1c':'#166534'}">Impact: ${e.amount<0?'+':''}${fmt(-e.amount)}</span></div>`).join('');
+  document.getElementById('result-title').textContent=grade;
+  document.getElementById('result-title').style.color=rem<0?'#dc2626':rem<200?'#ea580c':'#16a34a';
+  document.getElementById('result-body').innerHTML=`
+    <div class="${isSuccess?'success-alert-box':'danger-alert-box'}"><p style="margin-bottom:0;color:inherit">${msg}</p></div>
+    <div class="card"><h3>Final Month Math</h3><div class="grid-2">
+      <div class="stat-card"><div class="stat-label">Take-Home Income</div><div class="stat-value">${fmt(state.takeHome)}</div></div>
+      <div class="stat-card"><div class="stat-label">Planned Bills</div><div class="stat-value">${fmt(total)}</div></div>
+      <div class="stat-card"><div class="stat-label">Budget Cushion Before Events</div><div class="stat-value" style="color:${plannedRem>=0?'#166534':'#b91c1c'}">${fmt(plannedRem)}</div></div>
+      <div class="stat-card"><div class="stat-label">Surprise Event Total</div><div class="stat-value" style="color:${eventTotal>0?'#b91c1c':'#166534'}">${fmt(eventTotal)}</div></div>
+      <div class="stat-card"><div class="stat-label">Final Cash Left</div><div class="stat-value" style="color:${rem>=0?'#166534':'#b91c1c'}">${fmt(rem)}</div></div>
+    </div></div>
+    <div class="card"><h3>Week-by-Week Recap</h3>${history}</div>
+    <div class="info-box"><strong>Takeaway:</strong> A budget is not successful just because planned bills fit income. It is successful when it survives irregular costs without forcing debt.</div>`;
+  goTo('s-results');
+}
+
+function continueAnotherMonth(){
+  startMonthGame();
+}
+
+function resetGame(){
+  state={grade:null,job:null,college:null,livingAtHome:false,totalDebt:0,loanMonthly:0,takeHome:0,picks:{},monthGame:null};
+  document.querySelectorAll('.job-btn,.choice-btn,.opt-btn,.grade-btn').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('btn-job').disabled=true;
+  document.getElementById('btn-college').disabled=true;
+  document.getElementById('btn-grades').disabled=true;
+  goTo('s-welcome');
+}
+</script>
+</body>
+</html>
